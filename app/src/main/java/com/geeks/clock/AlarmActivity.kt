@@ -1,18 +1,17 @@
 package com.geeks.clock
 
-import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.PendingIntent
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
-import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.geeks.clock.databinding.ActivityAlarmBinding
-import java.text.SimpleDateFormat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.*
 
 class AlarmActivity : AppCompatActivity() {
@@ -40,7 +39,6 @@ class AlarmActivity : AppCompatActivity() {
         }
     }
 
-    @SuppressLint("ScheduleExactAlarm")
     private fun setAlarm() {
         val calendar = Calendar.getInstance()
         calendar.set(Calendar.HOUR_OF_DAY, binding.timePicker.hour)
@@ -53,20 +51,39 @@ class AlarmActivity : AppCompatActivity() {
             calendar.add(Calendar.DATE, 1)
         }
 
-        alarmManager.setExact(
-            AlarmManager.RTC_WAKEUP,
-            calendar.timeInMillis,
-            pendingIntent
-        )
-
-        val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-        val alarmTime = sdf.format(calendar.time)
-
-        Toast.makeText(this, "Alarm set for $alarmTime", Toast.LENGTH_SHORT).show()
+        CoroutineScope(Dispatchers.IO).launch {
+            setAlarmInBackground(calendar.timeInMillis)
+        }
     }
 
     private fun cancelAlarm() {
+        CoroutineScope(Dispatchers.IO).launch {
+            cancelAlarmInBackground()
+        }
+    }
+
+    private suspend fun setAlarmInBackground(timeInMillis: Long) {
+        withContext(Dispatchers.Main) {
+        }
+
+        alarmManager.setExact(
+            AlarmManager.RTC_WAKEUP,
+            timeInMillis,
+            pendingIntent
+        )
+
+        withContext(Dispatchers.Main) {
+            Toast.makeText(this@AlarmActivity, "Alarm set", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private suspend fun cancelAlarmInBackground() {
+        withContext(Dispatchers.Main) {
+        }
         alarmManager.cancel(pendingIntent)
-        Toast.makeText(this, "Alarm canceled", Toast.LENGTH_SHORT).show()
+
+        withContext(Dispatchers.Main) {
+            Toast.makeText(this@AlarmActivity, "Alarm canceled", Toast.LENGTH_SHORT).show()
+        }
     }
 }
